@@ -15,7 +15,7 @@ const PORT = Number(process.env.PORT || 3000);
 app.use(express.json());
 
 // API route for generating real-time romantic whispers for Bayyan
-app.post('/api/whisper', async (req, res) => {
+app.post(['/api/whisper', '/bayyan-lover/api/whisper'], async (req, res) => {
   try {
     const { category, prompt } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
@@ -77,6 +77,14 @@ Return strictly raw JSON without markdown code fences.`;
   }
 });
 
+// Redirect root to /bayyan-lover/ so both root and subpath resolve correctly
+app.get('/', (req, res, next) => {
+  if (req.headers.accept && req.headers.accept.includes('text/html')) {
+    return res.redirect('/bayyan-lover/');
+  }
+  next();
+});
+
 // Mount Vite or serve static assets
 if (process.env.NODE_ENV !== 'production') {
   const { createServer: createViteServer } = await import('vite');
@@ -86,6 +94,7 @@ if (process.env.NODE_ENV !== 'production') {
   });
   app.use(vite.middlewares);
 } else {
+  app.use('/bayyan-lover', express.static(path.join(__dirname, 'dist')));
   app.use(express.static(path.join(__dirname, 'dist')));
   app.get('*', (_req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));

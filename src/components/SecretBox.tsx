@@ -58,7 +58,8 @@ export const SecretBox: React.FC<SecretBoxProps> = ({ category, onClick, index }
       whileHover={{ y: -8, scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
       onClick={handleOpen}
-      className="group relative cursor-pointer select-none"
+      className="group relative cursor-pointer select-none touch-manipulation"
+      style={{ WebkitTapHighlightColor: 'transparent' }}
     >
       {/* Outer ambient glow */}
       <div
@@ -66,7 +67,7 @@ export const SecretBox: React.FC<SecretBoxProps> = ({ category, onClick, index }
       />
 
       {/* Main Luxury Gift Box */}
-      <div className="relative rounded-3xl overflow-hidden border border-rose-300/30 bg-gradient-to-b from-stone-900/90 via-[#260815]/95 to-stone-950/95 backdrop-blur-xl p-6 shadow-2xl transition-all duration-300 flex flex-col justify-between min-h-[290px]">
+      <div className="relative rounded-3xl overflow-hidden border border-rose-300/30 bg-gradient-to-b from-stone-900/90 via-[#260815]/95 to-stone-950/95 backdrop-blur-xl p-5 sm:p-6 shadow-2xl transition-all duration-300 flex flex-col justify-between min-h-[260px] sm:min-h-[290px]">
         {/* Subtle patterned shimmer */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-500/15 via-transparent to-transparent pointer-events-none" />
 

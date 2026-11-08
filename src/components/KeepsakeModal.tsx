@@ -16,11 +16,20 @@ export const KeepsakeModal: React.FC<KeepsakeModalProps> = ({
   favoriteMessages,
   onRemoveFavorite,
 }) => {
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -35,7 +44,7 @@ export const KeepsakeModal: React.FC<KeepsakeModalProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-xl max-h-[85vh] flex flex-col rounded-3xl border border-rose-400/40 bg-gradient-to-b from-[#220713]/95 via-[#2b0819]/95 to-[#15030d]/95 text-white shadow-2xl z-10 overflow-hidden"
+          className="relative w-full max-w-xl max-h-[90vh] max-h-[90dvh] flex flex-col rounded-3xl border border-rose-400/40 bg-gradient-to-b from-[#220713]/95 via-[#2b0819]/95 to-[#15030d]/95 text-white shadow-2xl z-10 overflow-hidden"
         >
           {/* Header */}
           <div className="p-5 sm:p-6 border-b border-rose-500/20 flex items-center justify-between">

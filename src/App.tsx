@@ -48,6 +48,21 @@ export default function App() {
     }
   });
 
+  // Unlock Web Audio API on first touch/click across any phone or laptop
+  useEffect(() => {
+    const unlock = () => {
+      romanticAudio.unlock();
+    };
+    window.addEventListener('touchstart', unlock, { once: true, passive: true });
+    window.addEventListener('pointerdown', unlock, { once: true, passive: true });
+    window.addEventListener('click', unlock, { once: true, passive: true });
+    return () => {
+      window.removeEventListener('touchstart', unlock);
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('click', unlock);
+    };
+  }, []);
+
   const toggleFavorite = (msg: LoveMessage) => {
     setFavoriteIds((prev) => {
       const exists = prev.includes(msg.id);
@@ -243,9 +258,9 @@ export default function App() {
                 </motion.div>
 
                 {/* Grand Name Display: BAYYAN */}
-                <h2 className="text-4xl sm:text-6xl md:text-7xl font-display font-black tracking-wider text-rose-100 drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">
+                <h2 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-black tracking-wider text-rose-100 drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)] break-words">
                   For My Love{' '}
-                  <span className="text-gold-shimmer font-serif-luxury italic">
+                  <span className="text-gold-shimmer font-serif-luxury italic inline-block">
                     Bayyan
                   </span>
                 </h2>

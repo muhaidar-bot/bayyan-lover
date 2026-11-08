@@ -5,7 +5,9 @@ export async function generateGeminiLoveWhisper(
   userCustomPrompt?: string
 ): Promise<{ title: string; body: string; arabicSnippet?: string; moodTag: string }> {
   try {
-    const response = await fetch('/api/whisper', {
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    const endpoint = `${baseUrl}api/whisper`.replace(/([^:]\/)\/+/g, '$1');
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

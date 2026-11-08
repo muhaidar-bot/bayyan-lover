@@ -14,11 +14,10 @@ interface RealRoseParticle {
   flip: number;
   flipSpeed: number;
   opacity: number;
-  spriteIndex: number; // 0: Top Rose, 1: Blossom Rose, 2: Real Petal
+  spriteIndex: number;
   swayAmplitude: number;
   swayFrequency: number;
   swayOffset: number;
-  blur: number;
 }
 
 interface Sparkle {
@@ -40,7 +39,7 @@ interface FallingRosesCanvasProps {
 }
 
 // Converts black-background image to transparent canvas sprite
-function createTransparentSprite(img: HTMLImageElement, size = 256): HTMLCanvasElement {
+function createTransparentSprite(img: HTMLImageElement, size = 240): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -56,12 +55,10 @@ function createTransparentSprite(img: HTMLImageElement, size = 256): HTMLCanvasE
     const g = data[i + 1];
     const b = data[i + 2];
 
-    // Background is black studio backdrop
     const maxVal = Math.max(r, g, b);
     if (maxVal < 24) {
-      data[i + 3] = 0; // Transparent
+      data[i + 3] = 0;
     } else if (maxVal < 60) {
-      // Smooth feathering on petal edges
       const alphaFactor = (maxVal - 24) / 36;
       data[i + 3] = Math.floor(alphaFactor * 255);
     }
@@ -82,7 +79,7 @@ export const FallingRosesCanvas: React.FC<FallingRosesCanvasProps> = ({
   const spritesRef = useRef<HTMLCanvasElement[]>([]);
   const [spritesLoaded, setSpritesLoaded] = useState(false);
 
-  // Preload and convert real rose photography to transparent sprites
+  // Preload real rose images into cached offscreen transparent sprites
   useEffect(() => {
     let isMounted = true;
     const urls = [roseTopUrl, roseBlossomUrl, rosePetalUrl];
@@ -98,7 +95,8 @@ export const FallingRosesCanvas: React.FC<FallingRosesCanvasProps> = ({
         loadedImages[index] = img;
         loadedCount++;
         if (loadedCount === urls.length) {
-          spritesRef.current = loadedImages.map((image) => createTransparentSprite(image, 240));
+          // 200px is optimal for both Retina phones and 4K laptops while conserving memory
+          spritesRef.current = loadedImages.map((image) => createTransparentSprite(image, 200));
           setSpritesLoaded(true);
         }
       };
@@ -109,6 +107,7 @@ export const FallingRosesCanvas: React.FC<FallingRosesCanvasProps> = ({
     };
   }, []);
 
+  // Main canvas animation and high-DPI scaling
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -116,53 +115,69 @@ export const FallingRosesCanvas: React.FC<FallingRosesCanvasProps> = ({
     if (!ctx) return;
 
     let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    let cssWidth = window.innerWidth;
+    let cssHeight = window.innerHeight;
 
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+    // Retina & High-DPI support (iPhones, Android OLEDs, MacBook Retina, 4K monitors)
+    const resizeCanvas = () => {
+      if (!canvas || !ctx) return;
+      cssWidth = window.innerWidth;
+      cssHeight = window.innerHeight;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.floor(cssWidth * dpr);
+      canvas.height = Math.floor(cssHeight * dpr);
+      canvas.style.width = `${cssWidth}px`;
+      canvas.style.height = `${cssHeight}px`;
+
+      // Reset transform and scale for DPR
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
-    window.addEventListener('resize', handleResize);
 
-    const count = density === 'gentle' ? 24 : density === 'romantic' ? 44 : 70;
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas, { passive: true });
+    window.addEventListener('orientationchange', resizeCanvas, { passive: true });
+
+    // Adaptive particle count: optimized for mobile phones vs laptops
+    const isMobile = cssWidth < 640;
+    const baseCount = isMobile
+      ? density === 'gentle' ? 14 : density === 'romantic' ? 24 : 38
+      : density === 'gentle' ? 24 : density === 'romantic' ? 44 : 70;
 
     const createParticle = (initialY = -50): RealRoseParticle => {
-      // 40% full real rose blossoms, 60% real individual rose petals
-      const isBlossom = Math.random() < 0.42;
+      const isBlossom = Math.random() < 0.4;
       const spriteIndex = isBlossom ? (Math.random() < 0.5 ? 0 : 1) : 2;
 
-      // Realistic scale variations
+      // Responsive particle sizing: slightly smaller on mobile to keep view clean
+      const sizeMultiplier = isMobile ? 0.8 : 1.0;
       const size = isBlossom
-        ? Math.random() * 26 + 32 // 32px - 58px for real rose heads
-        : Math.random() * 18 + 24; // 24px - 42px for real petals
+        ? (Math.random() * 22 + 28) * sizeMultiplier
+        : (Math.random() * 16 + 20) * sizeMultiplier;
 
       return {
-        x: Math.random() * width,
-        y: initialY === -50 ? Math.random() * height : initialY,
+        x: Math.random() * cssWidth,
+        y: initialY === -50 ? Math.random() * cssHeight : initialY,
         size,
-        speedY: isBlossom ? Math.random() * 0.8 + 0.7 : Math.random() * 1.1 + 0.8,
-        speedX: Math.random() * 0.7 - 0.35,
+        speedY: isBlossom ? Math.random() * 0.7 + 0.6 : Math.random() * 1.0 + 0.7,
+        speedX: Math.random() * 0.6 - 0.3,
         rotation: Math.random() * Math.PI * 2,
         rotationSpeed: (Math.random() - 0.5) * 0.02,
         flip: Math.random() * Math.PI,
-        flipSpeed: Math.random() * 0.035 + 0.015,
+        flipSpeed: Math.random() * 0.03 + 0.012,
         opacity: Math.random() * 0.25 + 0.75,
         spriteIndex,
-        swayAmplitude: Math.random() * 1.8 + 0.9,
-        swayFrequency: Math.random() * 0.018 + 0.009,
+        swayAmplitude: Math.random() * 1.5 + 0.8,
+        swayFrequency: Math.random() * 0.016 + 0.008,
         swayOffset: Math.random() * 100,
-        blur: Math.random() < 0.25 ? Math.random() * 1.5 : 0, // Depth of field
       };
     };
 
-    rosesRef.current = Array.from({ length: count }, () => createParticle());
+    rosesRef.current = Array.from({ length: baseCount }, () => createParticle());
 
     let step = 0;
 
     const render = () => {
-      ctx.clearRect(0, 0, width, height);
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
       step += 1;
 
       const sprites = spritesRef.current;
@@ -177,31 +192,30 @@ export const FallingRosesCanvas: React.FC<FallingRosesCanvasProps> = ({
         p.x += p.speedX + sway;
         p.y += p.speedY;
 
-        // Interactive gentle wind draft
+        // Interactive touch/mouse draft (works on laptop hover & phone taps)
         if (mouseRef.current.active) {
           const dx = p.x - mouseRef.current.x;
           const dy = p.y - mouseRef.current.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 150) {
-            const force = (1 - dist / 150) * 4.5;
+          if (dist < 130) {
+            const force = (1 - dist / 130) * 4;
             p.x += (dx / dist) * force;
             p.y += (dy / dist) * force;
           }
         }
 
-        // Loop around edges
-        if (p.y > height + 60) {
-          particles[i] = createParticle(-50);
+        // Loop boundaries
+        if (p.y > cssHeight + 50) {
+          particles[i] = createParticle(-40);
         }
-        if (p.x > width + 40) p.x = -30;
-        else if (p.x < -40) p.x = width + 30;
+        if (p.x > cssWidth + 40) p.x = -30;
+        else if (p.x < -40) p.x = cssWidth + 30;
 
-        // Draw the real rose / petal sprite
+        // Draw real rose sprite
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rotation);
 
-        // 3D perspective flip (especially breathtaking on petals)
         const scaleX = Math.cos(p.flip);
         ctx.scale(scaleX, 1);
         ctx.globalAlpha = p.opacity;
@@ -209,12 +223,8 @@ export const FallingRosesCanvas: React.FC<FallingRosesCanvasProps> = ({
         const sprite = sprites[p.spriteIndex];
         if (sprite) {
           const s = p.size;
-          // Soft romantic drop shadow under each real rose/petal
-          ctx.shadowColor = 'rgba(244, 63, 94, 0.35)';
-          ctx.shadowBlur = 12;
           ctx.drawImage(sprite, -s / 2, -s / 2, s, s);
         } else {
-          // Fallback while sprites decode
           ctx.fillStyle = '#fb7185';
           ctx.beginPath();
           ctx.arc(0, 0, p.size * 0.35, 0, Math.PI * 2);
@@ -224,7 +234,7 @@ export const FallingRosesCanvas: React.FC<FallingRosesCanvasProps> = ({
         ctx.restore();
       }
 
-      // Render glowing romantic sparkles
+      // Sparkles
       const sparkles = sparklesRef.current;
       for (let i = sparkles.length - 1; i >= 0; i--) {
         const s = sparkles[i];
@@ -240,8 +250,6 @@ export const FallingRosesCanvas: React.FC<FallingRosesCanvasProps> = ({
         ctx.save();
         ctx.globalAlpha = Math.max(0, s.alpha);
         ctx.fillStyle = s.color;
-        ctx.shadowColor = '#fb7185';
-        ctx.shadowBlur = 10;
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
         ctx.fill();
@@ -255,91 +263,56 @@ export const FallingRosesCanvas: React.FC<FallingRosesCanvasProps> = ({
 
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('orientationchange', resizeCanvas);
     };
   }, [density, spritesLoaded]);
 
-  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+  // Global touch & mouse handlers that DO NOT block scrolling on phones
+  useEffect(() => {
     if (!interactive) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    mouseRef.current = { x, y, active: true };
 
-    if (Math.random() < 0.35) {
-      sparklesRef.current.push({
-        x,
-        y,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: (Math.random() - 0.5) * 1.5 - 0.5,
-        size: Math.random() * 2.5 + 1.2,
-        alpha: 0.9,
-        color: Math.random() < 0.6 ? '#fecdd3' : '#fde047',
-        life: 0,
-        maxLife: 35,
-      });
-    }
-  };
+    const handlePointerMove = (e: PointerEvent) => {
+      // Only track if it's mouse or direct touch
+      mouseRef.current = { x: e.clientX, y: e.clientY, active: true };
 
-  const handlePointerLeave = () => {
-    mouseRef.current.active = false;
-  };
+      if (Math.random() < 0.25) {
+        sparklesRef.current.push({
+          x: e.clientX,
+          y: e.clientY,
+          vx: (Math.random() - 0.5) * 1.5,
+          vy: (Math.random() - 0.5) * 1.5 - 0.5,
+          size: Math.random() * 2 + 1,
+          alpha: 0.85,
+          color: Math.random() < 0.6 ? '#fecdd3' : '#fde047',
+          life: 0,
+          maxLife: 30,
+        });
+      }
+    };
 
-  const handleClick = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!interactive) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const handlePointerUp = () => {
+      // Fade out mouse force after brief moment
+      setTimeout(() => {
+        mouseRef.current.active = false;
+      }, 400);
+    };
 
-    // Burst a shower of real pink roses and petals from click point
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI * 2) / 6 + Math.random() * 0.3;
-      const speed = Math.random() * 2.5 + 1.5;
-      rosesRef.current.push({
-        x,
-        y,
-        size: Math.random() * 20 + 26,
-        speedY: Math.sin(angle) * speed + 1,
-        speedX: Math.cos(angle) * speed,
-        rotation: Math.random() * Math.PI * 2,
-        rotationSpeed: (Math.random() - 0.5) * 0.04,
-        flip: Math.random() * Math.PI,
-        flipSpeed: 0.04,
-        opacity: 0.95,
-        spriteIndex: Math.floor(Math.random() * 3),
-        swayAmplitude: 1.5,
-        swayFrequency: 0.015,
-        swayOffset: Math.random() * 50,
-        blur: 0,
-      });
-    }
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    window.addEventListener('pointerup', handlePointerUp, { passive: true });
 
-    // Sparkles
-    for (let i = 0; i < 15; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 4 + 1.5;
-      sparklesRef.current.push({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 1,
-        size: Math.random() * 3 + 1.5,
-        alpha: 1,
-        color: ['#f43f5e', '#fb7185', '#ffe4e6', '#fde047'][i % 4],
-        life: 0,
-        maxLife: 40,
-      });
-    }
-  };
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [interactive]);
 
   return (
     <canvas
       ref={canvasRef}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
-      onClick={handleClick}
-      className="absolute inset-0 w-full h-full pointer-events-auto z-10"
-      style={{ touchAction: 'none' }}
+      className="fixed inset-0 w-full h-full pointer-events-none z-10"
+      style={{ touchAction: 'pan-y' }}
+      aria-hidden="true"
     />
   );
 };

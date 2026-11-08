@@ -162,18 +162,27 @@ export const OpenedBoxModal: React.FC<OpenedBoxModalProps> = ({
     }
   };
 
+  // Escape key handler for laptop keyboards
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const isFavorited = favorites.includes(currentMessage.id);
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 overflow-y-auto">
         {/* Backdrop overlay */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-stone-950/80 backdrop-blur-md"
+          className="fixed inset-0 bg-stone-950/85 backdrop-blur-md"
         />
 
         {/* Modal Window */}
@@ -182,7 +191,7 @@ export const OpenedBoxModal: React.FC<OpenedBoxModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="relative w-full max-w-2xl rounded-3xl border border-rose-400/40 bg-gradient-to-b from-[#1f0612]/95 via-[#2b0819]/95 to-[#12020a]/95 text-white shadow-2xl overflow-hidden my-auto z-10 p-5 sm:p-8"
+          className="relative w-full max-w-2xl max-h-[92vh] max-h-[92dvh] overflow-y-auto overscroll-contain rounded-3xl border border-rose-400/40 bg-gradient-to-b from-[#1f0612]/95 via-[#2b0819]/95 to-[#12020a]/95 text-white shadow-2xl my-auto z-10 p-4 sm:p-6 md:p-8"
         >
           {/* Ambient luminous glow top header */}
           <div
@@ -220,7 +229,7 @@ export const OpenedBoxModal: React.FC<OpenedBoxModalProps> = ({
                   rotate: roseBloomState === 'blooming' ? [-6, 2, 0] : 0,
                 }}
                 transition={{ duration: 0.75, ease: 'easeOut' }}
-                className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-full p-1.5 bg-gradient-to-tr from-amber-300 via-rose-500 to-amber-200 shadow-[0_0_30px_rgba(244,63,94,0.7)] flex items-center justify-center"
+                className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full p-1 sm:p-1.5 bg-gradient-to-tr from-amber-300 via-rose-500 to-amber-200 shadow-[0_0_30px_rgba(244,63,94,0.7)] flex items-center justify-center shrink-0"
               >
                 <img
                   src={roseTopUrl}
