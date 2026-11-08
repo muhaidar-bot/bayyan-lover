@@ -1,0 +1,6 @@
+{
+  "name": "Bayyan - Forever My Love",
+  "description": "A romantic sanctuary dedicated to Bayyan with falling pink roses, romantic wallpaper, and four interactive secret love boxes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
